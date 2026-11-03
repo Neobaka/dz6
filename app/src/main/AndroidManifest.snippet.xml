@@ -1,0 +1,18 @@
+<!-- Добавь в свой AndroidManifest.xml (к тому, что уже есть с первой практики) -->
+<manifest ...>
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Точные будильники: на Android 12-12L нужно SCHEDULE_EXACT_ALARM, на 13+ достаточно USE_EXACT_ALARM -->
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <application ...>
+
+        <receiver
+            android:name="com.example.dz6.data.ReminderReceiver"
+            android:exported="false" />
+
+    </application>
+</manifest>
