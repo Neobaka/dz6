@@ -6,5 +6,7 @@ data class Profile(
     /** URI аватарки во внутреннем хранилище приложения (file://...) */
     val avatarUri: String? = null,
     /** Ссылка на резюме/портфолио (pdf) */
-    val resumeUrl: String = ""
+    val resumeUrl: String = "",
+    /** Время любимой пары в формате HH:mm */
+    val reminderTime: String = ""
 )

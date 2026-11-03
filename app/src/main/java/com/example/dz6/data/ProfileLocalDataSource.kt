@@ -10,10 +10,6 @@ import kotlinx.coroutines.flow.map
 
 private val Context.profileDataStore by preferencesDataStore(name = "profile")
 
-/**
- * Профиль — небольшая плоская структура из 4 строк, поэтому
- * Preferences DataStore подходит лучше, чем БД или ручной файл.
- */
 class ProfileLocalDataSource(private val context: Context) {
 
     private object Keys {
@@ -21,6 +17,7 @@ class ProfileLocalDataSource(private val context: Context) {
         val position = stringPreferencesKey("position")
         val avatar = stringPreferencesKey("avatar_uri")
         val resume = stringPreferencesKey("resume_url")
+        val reminder = stringPreferencesKey("reminder_time")
     }
 
     val profile: Flow<Profile> = context.profileDataStore.data.map { p ->
@@ -28,7 +25,8 @@ class ProfileLocalDataSource(private val context: Context) {
             fullName = p[Keys.name].orEmpty(),
             position = p[Keys.position].orEmpty(),
             avatarUri = p[Keys.avatar],
-            resumeUrl = p[Keys.resume].orEmpty()
+            resumeUrl = p[Keys.resume].orEmpty(),
+            reminderTime = p[Keys.reminder].orEmpty()
         )
     }
 
@@ -37,6 +35,7 @@ class ProfileLocalDataSource(private val context: Context) {
             p[Keys.name] = profile.fullName
             p[Keys.position] = profile.position
             p[Keys.resume] = profile.resumeUrl
+            p[Keys.reminder] = profile.reminderTime
             if (profile.avatarUri != null) p[Keys.avatar] = profile.avatarUri else p.remove(Keys.avatar)
         }
     }

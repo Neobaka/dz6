@@ -1,6 +1,10 @@
 package com.example.dz6.presentation.edit
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,8 +19,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.dz6.presentation.components.Avatar
+import com.example.dz6.presentation.components.TimeField
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,12 +41,28 @@ fun EditProfileScreen(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> uri?.let(viewModel::onAvatarPicked) }
 
-    // Камера: системное приложение камеры пишет в наш FileProvider-URI.
-    // Пока в манифесте нет android.permission.CAMERA, разрешение запрашивать не нужно.
+    // Камера: системное приложение камеры пишет в наш FileProvider-URI
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) pendingCameraUri?.let(viewModel::onAvatarPicked)
+    }
+
+    // Android 13+: без POST_NOTIFICATIONS пуш не покажется. Профиль сохраняем в любом случае.
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { viewModel.onSave(onDone) }
+
+    val onSaveClick = {
+        val needPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        if (needPermission) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.onSave(onDone)
+        }
     }
 
     Scaffold(
@@ -53,10 +75,9 @@ fun EditProfileScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = { viewModel.onSave(onDone) },
-                        enabled = viewModel.canSave
-                    ) { Icon(Icons.Default.Check, contentDescription = "Готово") }
+                    IconButton(onClick = onSaveClick, enabled = viewModel.canSave) {
+                        Icon(Icons.Default.Check, contentDescription = "Готово")
+                    }
                 }
             )
         }
@@ -75,7 +96,7 @@ fun EditProfileScreen(
                 onValueChange = viewModel::onNameChange,
                 label = { Text("Имя") },
                 singleLine = true,
-                isError = !viewModel.canSave,
+                isError = viewModel.nameError,
                 modifier = Modifier.fillMaxWidth()
             )
             TextField(
@@ -91,6 +112,11 @@ fun EditProfileScreen(
                 label = { Text("Ссылка") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
+            )
+            TimeField(
+                value = viewModel.reminderTime,
+                onValueChange = viewModel::onTimeChange,
+                isError = viewModel.timeError
             )
         }
     }
@@ -121,7 +147,7 @@ fun EditProfileScreen(
     }
 }
 
-private fun createCameraUri(context: android.content.Context): Uri {
+private fun createCameraUri(context: Context): Uri {
     val dir = File(context.cacheDir, "camera").apply { mkdirs() }
     val file = File(dir, "photo_${System.currentTimeMillis()}.jpg")
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
